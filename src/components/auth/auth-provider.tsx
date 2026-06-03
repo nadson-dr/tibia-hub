@@ -44,6 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe;
   }, []);
 
+  // Login com Google fica disponível no provider, mas a UI só expõe email/senha
+  // por ora. Reativar adicionando o botão em /login numa próxima versão (requer
+  // habilitar o provider Google no console Firebase Auth).
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     const cred = await signInWithPopup(auth, provider);

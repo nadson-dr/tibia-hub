@@ -31,7 +31,7 @@ Outros scripts: `pnpm build`, `pnpm start`, `pnpm typecheck`, `pnpm lint`.
 ### Firebase
 
 1. Crie um projeto no [console Firebase](https://console.firebase.google.com) (plano Spark/free).
-2. Ative **Firestore** e **Authentication** (Google + Email/senha).
+2. Ative **Firestore** e **Authentication** (por ora só **Email/senha**; Google fica para uma próxima versão).
 3. Web app → copie a config para `NEXT_PUBLIC_FIREBASE_*` no `.env.local`.
 4. Service account → gere a chave privada → `FIREBASE_ADMIN_*` no `.env.local`.
 5. Rules/índices: `firebase deploy --only firestore` (ou cole `firestore.rules` no console).
