@@ -81,3 +81,54 @@ export type SignupDoc = {
 
 /** Result discriminável para I/O que pode falhar (ver spec/08-conventions.md). */
 export type Result<T, E = string> = { ok: true; value: T } | { ok: false; error: E };
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Contrato de autenticação e server actions (Fase 1 — slice 1).
+ * Costura front/back: o client faz sign-in com o Firebase Web SDK, obtém o ID
+ * token e POSTa em `/api/auth/session` para o servidor criar um cookie httpOnly
+ * de sessão. A partir daí, Server Components e server actions descobrem o usuário
+ * via `getCurrentUser()` (lê o cookie) — o client NÃO passa token nas actions.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Usuário autenticado resolvido no servidor a partir do cookie de sessão. */
+export type SessionUser = {
+  uid: string;
+  email: string | null;
+};
+
+/** Documento de usuário + id (para hidratar UI). */
+export type WithId<T> = T & { id: string };
+
+export type TeamOnboardingInput = {
+  name: string;
+  slug: string;
+  worlds: string[];
+  description?: string;
+  contact: Contact;
+  /** personagem do dono que vira o primeiro membro (owner) */
+  ownerCharacterName: string;
+};
+
+export type AddCharacterInput = {
+  name: string; // será validado na TibiaData (mundo/vocação/level vêm de lá)
+};
+
+export type CreateOfferingInput = {
+  teamId: string;
+  quest: QuestCode;
+  world: string;
+  vocationSlots: Partial<Record<TibiaVocation, number>>;
+  kind?: OfferingKind; // default "service"
+};
+
+export type CreateSignupInput = {
+  offeringId: string;
+  characterName: string; // validado na TibiaData contra o mundo da oferta
+  contact: Contact;
+  source?: string;
+};
+
+export type UpdateSignupStatusInput = {
+  signupId: string;
+  status: SignupStatus;
+};
