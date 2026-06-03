@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// Tibia Hub — security rules. Ver spec/02-data-model.md.
+// Princípio: leitura pública só do que é público (times aprovados, ofertas abertas).
+// Toda escrita relevante passa pelo Admin SDK no servidor (rules barram escrita direta do client).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isTeamOwner(teamId) {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/teams/$(teamId)).data.ownerUid == request.auth.uid;
+    }
+
+    // Perfil do usuário — só o dono lê/escreve.
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+
+      match /characters/{charId} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+    }
+
+    // Times — leitura pública se aprovado (ou se for o dono). Escrita via servidor.
+    match /teams/{teamId} {
+      allow read: if resource.data.approved == true || isTeamOwner(teamId);
+      allow write: if false;
+
+      match /members/{memberId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // Ofertas — leitura pública se aberta (ou se for o dono). Escrita via servidor.
+    match /offerings/{offeringId} {
+      allow read: if resource.data.status == 'open' || isTeamOwner(resource.data.teamId);
+      allow write: if false;
+    }
+
+    // Inscrições — visíveis ao cliente que criou e ao dono do time. Escrita via servidor
+    // (valida personagem na TibiaData e calcula queueOrder).
+    match /signups/{signupId} {
+      allow read: if isSignedIn()
+        && (request.auth.uid == resource.data.clientUid || isTeamOwner(resource.data.teamId));
+      allow write: if false;
+    }
+  }
+}

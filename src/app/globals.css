@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/*
+ * Royal Parchment — tema do Tibia Hub.
+ * Tokens: ver spec/03-design-system.md. Nunca hard-code hex em componente.
+ */
+@theme {
+  --color-bg: #17120c;
+  --color-surface: #241b12;
+  --color-surface-2: #2e2418;
+  --color-border: #3a2c1c;
+  --color-gold: #d4af37;
+  --color-amber: #e8a33d;
+  --color-text: #ece3d0;
+  --color-muted: #9a8c73;
+  --color-success: #6fae5e;
+  --color-danger: #c0552f;
+  --color-info: #7c93c0;
+
+  /* vocações (badges de fila) */
+  --color-voc-ek: #c0552f;
+  --color-voc-rp: #6fae5e;
+  --color-voc-ed: #7c93c0;
+  --color-voc-ms: #9b6fd4;
+  --color-voc-em: #e8a33d;
+
+  --font-display: var(--font-cinzel), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  /* textura sutil de pergaminho/madeira via gradiente radial quente */
+  background-image:
+    radial-gradient(1200px 600px at 50% -10%, rgba(212, 175, 55, 0.06), transparent 60%),
+    radial-gradient(800px 400px at 90% 110%, rgba(232, 163, 61, 0.04), transparent 60%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}

@@ -1,0 +1,39 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "signups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "teamId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "queueOrder", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "signups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clientUid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "offerings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "world", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "offerings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "quest", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
