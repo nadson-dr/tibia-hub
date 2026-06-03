@@ -8,7 +8,8 @@ async function getCurrentUser() {
   try {
     const { getCurrentUser } = await import("@/lib/auth/current-user");
     return getCurrentUser();
-  } catch {
+  } catch (err) {
+    console.error("[p/[slug]] getCurrentUser falhou:", err);
     return null;
   }
 }
@@ -17,7 +18,8 @@ async function getTeam(slug: string): Promise<WithId<TeamDoc> | null> {
   try {
     const { getTeamBySlug } = await import("@/lib/db/teams");
     return await getTeamBySlug(slug);
-  } catch {
+  } catch (err) {
+    console.error("[p/[slug]] getTeam falhou:", err);
     return null;
   }
 }
@@ -26,7 +28,8 @@ async function getOfferings(teamId: string): Promise<WithId<OfferingDoc>[]> {
   try {
     const { listOfferingsByTeam } = await import("@/lib/db/offerings");
     return await listOfferingsByTeam(teamId);
-  } catch {
+  } catch (err) {
+    console.error("[p/[slug]] getOfferings falhou:", err);
     return [];
   }
 }
@@ -35,7 +38,8 @@ async function getSignups(offeringIds: string[]): Promise<WithId<SignupDoc>[]> {
   try {
     const { listSignupsByOfferings } = await import("@/lib/db/signups");
     return await listSignupsByOfferings(offeringIds);
-  } catch {
+  } catch (err) {
+    console.error("[p/[slug]] getSignups falhou:", err);
     return [];
   }
 }

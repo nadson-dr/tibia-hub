@@ -12,6 +12,8 @@ auto-detectadas pelo Claude Code).
 | **tibia-frontend** | UI seguindo o design system | `src/app/**`, `src/components/**`, `globals.css` | sonnet |
 | **tibia-backend** | Dados, Admin SDK, server actions, rules, validação | `src/lib/**`, `src/server/**`, `firestore.rules`, `firestore.indexes.json` | sonnet |
 | **tibia-expert** | Verdade de mecânica/fórmula/quest do jogo (lê a knowledge base) | consulta (não escreve app) | sonnet |
+| **tibia-qa** | **Sempre ao finalizar:** valida ponta a ponta (unit + integração + E2E em navegador real, ambas personas); reporta bugs | `tests/` + scripts efêmeros (não toca produto) | sonnet |
+| **tibia-fixer** | Resolve tudo que o QA achar — bugs in-scope **e** fora de escopo; triá e re-testa | onde o bug estiver | sonnet |
 | **tibia-reviewer** *(opcional)* | Revisa o diff contra spec + convenções | leitura | sonnet |
 
 ## Contrato de paralelismo (como evitar conflito)
@@ -40,8 +42,26 @@ orchestrator:
      • tibia-backend  → server action createSignup() + valida via lib/tibiadata + rules de signups
      • tibia-frontend → wizard /g/[slug]/a/[id]/signup usando os tipos + componentes ui/
      • tibia-expert   → confirma pré-requisitos da quest p/ o checklist (consulta)
-  3. integra: build, conecta o form à action, revisa
+  3. integra: build, conecta o form à action
+  4. tibia-qa → testa unit+integração+E2E (cliente e dono) e reporta
+  5. se houver bug → tibia-fixer corrige → tibia-qa re-testa → aprovado
 ```
+
+## Loop de QA e correção (obrigatório ao finalizar)
+
+Nenhuma tarefa é considerada pronta sem passar pelo QA:
+
+1. **`tibia-qa`** roda as três camadas — **unit** (vitest), **integração** (server actions + queries
+   Firestore reais, atento a índice faltando e `catch` que engole erro) e **qualidade/E2E**
+   (Playwright em navegador real, acessando a funcionalidade nas **duas personas**: cliente e dono
+   de time). Entrega um relatório ✅/⚠️/❌ com bugs, severidade, causa raiz e evidências.
+2. Se reprovar ou listar bugs, **`tibia-fixer`** resolve **tudo** — inclusive itens **fora do
+   escopo** da tarefa (corrige os pequenos/seguros; documenta como follow-up os grandes/arriscados).
+3. O orquestrador **re-roda o `tibia-qa`** na área afetada até aprovado ou só restarem follow-ups.
+
+> Automação: o gatilho é o passo 6–7 do protocolo do orquestrador acima. Um hook de `Stop` rodando
+> `pnpm test`/`pnpm build` pode ser adicionado depois (via skill `update-config`) como rede extra,
+> mas o E2E com navegador é responsabilidade do `tibia-qa`.
 
 ## Quando NÃO paralelizar
 Tarefa pequena, isolada e num único arquivo: o orquestrador (ou o próprio fluxo principal) faz

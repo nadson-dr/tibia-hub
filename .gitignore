@@ -40,3 +40,6 @@ firebase-debug.log
 
 # scraper output (regenerável)
 /data/
+
+# screenshots de teste E2E (evidências locais)
+/tests/screenshots/

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { UserCircle, Plus, CheckCircle2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,31 @@ export default function MePage() {
   const [addError, setAddError] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
   const [addSuccess, setAddSuccess] = useState<string | null>(null);
+  const [listLoading, setListLoading] = useState(true);
+
+  // Carrega os personagens já cadastrados ao montar (sem isso, somem no reload).
+  useEffect(() => {
+    if (!user) {
+      setListLoading(false);
+      return;
+    }
+    let active = true;
+    setListLoading(true);
+    void (async () => {
+      try {
+        const { listMyCharacters } = await import("@/server/actions/characters");
+        const list = await listMyCharacters();
+        if (active) setCharacters(list);
+      } catch {
+        // mantém a lista atual; falha silenciosa de leitura não bloqueia a página
+      } finally {
+        if (active) setListLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   if (!user) {
     return (
@@ -128,7 +153,11 @@ export default function MePage() {
           )}
 
           {/* Lista */}
-          {characters.length === 0 ? (
+          {listLoading ? (
+            <p className="py-8 text-center text-sm text-[var(--color-muted)]">
+              Carregando personagens...
+            </p>
+          ) : characters.length === 0 ? (
             <EmptyCharacters />
           ) : (
             <ul className="flex flex-col gap-2" aria-label="Lista de personagens">

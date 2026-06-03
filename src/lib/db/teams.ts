@@ -42,31 +42,23 @@ export async function getTeamBySlug(slug: string): Promise<WithId<TeamDoc> | nul
 }
 
 /**
- * Lista times aprovados, com filtro opcional por mundo.
- * Ordenados por createdAt DESC.
+ * Lista times aprovados, com filtro opcional por mundo, ordenados por createdAt DESC.
  *
- * Query com filtro de mundo: (approved == true, world array-contains, createdAt DESC)
- * → índice composto necessário quando world estiver presente (ver firestore.indexes.json).
- * Query sem filtro: (approved == true, createdAt DESC) → índice simples.
+ * Usa um único filtro de igualdade (`approved == true`) e aplica mundo + ordenação em
+ * memória — assim NÃO exige índice composto e funciona em projeto novo sem deploy de índice.
+ * Em escala, voltar a `.where("worlds","array-contains",world).orderBy("createdAt","desc")` +
+ * deploy do índice composto (já declarado em firestore.indexes.json).
  */
 export async function listApprovedTeams(
   filters?: { world?: string },
 ): Promise<WithId<TeamDoc>[]> {
-  let query = adminDb()
-    .collection("teams")
-    .where("approved", "==", true)
-    .orderBy("createdAt", "desc") as FirebaseFirestore.Query;
+  const snap = await adminDb().collection("teams").where("approved", "==", true).get();
 
+  let teams = snap.docs.map((doc) => hydrateTeam(doc.id, doc.data() as FirestoreTeamDoc));
   if (filters?.world) {
-    query = adminDb()
-      .collection("teams")
-      .where("approved", "==", true)
-      .where("worlds", "array-contains", filters.world)
-      .orderBy("createdAt", "desc");
+    teams = teams.filter((t) => t.worlds.includes(filters.world!));
   }
-
-  const snap = await query.get();
-  return snap.docs.map((doc) => hydrateTeam(doc.id, doc.data() as FirestoreTeamDoc));
+  return teams.sort((a, b) => b.createdAt - a.createdAt);
 }
 
 /**

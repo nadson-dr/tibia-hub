@@ -73,3 +73,33 @@ export async function addCharacter(
     } as WithId<CharacterDoc>,
   };
 }
+
+/**
+ * Lista os personagens já cadastrados do usuário autenticado
+ * (users/{uid}/characters), ordenados por validação mais recente.
+ * Usado para hidratar /me no carregamento (sem isso a lista some no reload).
+ */
+export async function listMyCharacters(): Promise<WithId<CharacterDoc>[]> {
+  const user = await requireUser();
+
+  const snap = await adminDb()
+    .collection("users")
+    .doc(user.uid)
+    .collection("characters")
+    .orderBy("validatedAt", "desc")
+    .get();
+
+  return snap.docs.map((doc) => {
+    const data = doc.data() as Omit<CharacterDoc, "validatedAt"> & {
+      validatedAt: { toMillis(): number };
+    };
+    return {
+      id: doc.id,
+      name: data.name,
+      world: data.world,
+      vocation: data.vocation,
+      level: data.level,
+      validatedAt: data.validatedAt.toMillis(),
+    };
+  });
+}

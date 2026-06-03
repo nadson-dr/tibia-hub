@@ -40,12 +40,13 @@ export function Header() {
             <span className="text-sm text-[var(--color-muted)]">...</span>
           ) : user ? (
             <>
-              <span
-                className="hidden sm:block max-w-[140px] truncate text-sm text-[var(--color-text)]"
-                title={user.displayName ?? user.email ?? ""}
+              <Link
+                href="/me"
+                className="hidden max-w-[160px] truncate text-sm text-[var(--color-text)] transition-colors hover:text-[var(--color-gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gold)] rounded sm:block"
+                title={`Meu perfil — ${user.displayName ?? user.email ?? ""}`}
               >
                 {user.displayName ?? user.email}
-              </span>
+              </Link>
               <Button
                 variant="outline"
                 size="sm"
@@ -55,11 +56,19 @@ export function Header() {
               </Button>
             </>
           ) : (
-            <Link href="/login">
-              <Button variant="gold" size="sm">
-                Entrar
-              </Button>
-            </Link>
+            <>
+              <Link
+                href="/signup"
+                className="hidden text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gold)] rounded px-1 sm:block"
+              >
+                Criar conta
+              </Link>
+              <Link href="/login">
+                <Button variant="gold" size="sm">
+                  Entrar
+                </Button>
+              </Link>
+            </>
           )}
         </div>
       </div>

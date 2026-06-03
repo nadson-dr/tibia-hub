@@ -38,7 +38,8 @@ async function getTeam(slug: string): Promise<WithId<TeamDoc> | null> {
   try {
     const { getTeamBySlug } = await import("@/lib/db/teams");
     return await getTeamBySlug(slug);
-  } catch {
+  } catch (err) {
+    console.error("[g/[slug]] getTeam falhou:", err);
     return null;
   }
 }
@@ -47,7 +48,8 @@ async function getOfferings(teamId: string): Promise<WithId<OfferingDoc>[]> {
   try {
     const { listOfferingsByTeam } = await import("@/lib/db/offerings");
     return await listOfferingsByTeam(teamId);
-  } catch {
+  } catch (err) {
+    console.error("[g/[slug]] getOfferings falhou:", err);
     return [];
   }
 }
