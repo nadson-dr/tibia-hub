@@ -65,17 +65,25 @@ export async function createSignup(
     return { ok: false, error: `Vocação desconhecida: ${charResult.character.vocation}.` };
   }
 
-  // 5. Calcula queueOrder
+  // 5. Carrega as inscrições da oferta (filtro de igualdade única — sem índice composto)
+  //    para (a) impedir inscrição duplicada do mesmo usuário e (b) calcular queueOrder.
   const existingSnap = await adminDb()
     .collection("signups")
     .where("offeringId", "==", input.offeringId)
-    .orderBy("queueOrder", "desc")
-    .limit(1)
     .get();
 
-  const lastOrder = existingSnap.empty
-    ? 0
-    : (existingSnap.docs[0].data() as { queueOrder: number }).queueOrder;
+  const existing = existingSnap.docs.map(
+    (d) => d.data() as { clientUid: string; status: string; queueOrder: number },
+  );
+
+  const alreadyIn = existing.some(
+    (s) => s.clientUid === user.uid && (s.status === "waiting" || s.status === "scheduled"),
+  );
+  if (alreadyIn) {
+    return { ok: false, error: "Você já está nesta fila." };
+  }
+
+  const lastOrder = existing.reduce((max, s) => Math.max(max, s.queueOrder ?? 0), 0);
 
   const signupData: Omit<SignupDoc, "createdAt"> & { createdAt: FieldValue } = {
     offeringId: input.offeringId,

@@ -27,7 +27,10 @@ function hydrateSignup(id: string, data: FirestoreSignupDoc): WithId<SignupDoc> 
 
 /**
  * Lista inscrições de múltiplas ofertas (usado no dashboard do dono).
- * Limita 500 inscrições por chamada (suficiente para o MVP).
+ *
+ * Usa só o filtro `in` (sem orderBy no Firestore) para NÃO exigir índice composto — a ordenação
+ * por queueOrder é feita em memória. Em escala, voltar a `.orderBy("queueOrder","asc")` + deploy
+ * do índice (offeringId/queueOrder) declarado em firestore.indexes.json.
  */
 export async function listSignupsByOfferings(
   offeringIds: string[],
@@ -40,16 +43,12 @@ export async function listSignupsByOfferings(
 
   for (let i = 0; i < offeringIds.length; i += BATCH) {
     const batch = offeringIds.slice(i, i + BATCH);
-    const snap = await adminDb()
-      .collection("signups")
-      .where("offeringId", "in", batch)
-      .orderBy("queueOrder", "asc")
-      .get();
+    const snap = await adminDb().collection("signups").where("offeringId", "in", batch).get();
 
     for (const doc of snap.docs) {
       results.push(hydrateSignup(doc.id, doc.data() as FirestoreSignupDoc));
     }
   }
 
-  return results;
+  return results.sort((a, b) => a.queueOrder - b.queueOrder);
 }
