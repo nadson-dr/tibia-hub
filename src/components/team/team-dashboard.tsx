@@ -17,7 +17,9 @@ import type {
   UpdateSignupStatusInput,
   SignupStatus,
   QuestCode,
+  SupporterStatus,
 } from "@/types";
+import { capsFor } from "@/config/donation";
 
 const QUEST_OPTIONS: { value: QuestCode; label: string }[] = [
   { value: "soulwar", label: "Soul War" },
@@ -53,9 +55,11 @@ type Props = {
   team: WithId<TeamDoc>;
   offerings: WithId<OfferingDoc>[];
   signups: WithId<SignupDoc>[];
+  /** Status de Apoiador do dono — dirige o limite de filas exibido. */
+  supporterStatus?: SupporterStatus;
 };
 
-export function TeamDashboard({ team, offerings: initialOfferings, signups: initialSignups }: Props) {
+export function TeamDashboard({ team, offerings: initialOfferings, signups: initialSignups, supporterStatus = "active" }: Props) {
   const [offerings, setOfferings] = useState(initialOfferings);
   const [signups, setSignups] = useState(initialSignups);
   const [activeTab, setActiveTab] = useState<TibiaVocation | "all">("all");
@@ -63,6 +67,9 @@ export function TeamDashboard({ team, offerings: initialOfferings, signups: init
     initialOfferings.find((o) => o.status === "open")?.id ?? initialOfferings[0]?.id ?? null,
   );
   const [showNewOffering, setShowNewOffering] = useState(false);
+
+  const caps = capsFor(supporterStatus);
+  const openOfferingsCount = offerings.filter((o) => o.status === "open").length;
 
   const activeOffering = offerings.find((o) => o.id === activeOfferingId) ?? null;
 
@@ -103,14 +110,19 @@ export function TeamDashboard({ team, offerings: initialOfferings, signups: init
             </div>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowNewOffering((v) => !v)}
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Nova fila
-        </Button>
+        <div className="flex flex-col items-end gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowNewOffering((v) => !v)}
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Nova fila
+          </Button>
+          <p className="text-xs text-[var(--color-muted)]" aria-live="polite">
+            {openOfferingsCount} / {caps.maxActiveOfferings} filas abertas
+          </p>
+        </div>
       </div>
 
       {/* Formulário de nova oferta */}

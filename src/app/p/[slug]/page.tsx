@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import type { TeamDoc, OfferingDoc, SignupDoc, WithId } from "@/types";
+import type { TeamDoc, OfferingDoc, SignupDoc, WithId, SupporterStatus } from "@/types";
 import { TeamDashboard } from "@/components/team/team-dashboard";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +44,15 @@ async function getSignups(offeringIds: string[]): Promise<WithId<SignupDoc>[]> {
   }
 }
 
+async function getSupporterStatus(): Promise<SupporterStatus> {
+  try {
+    const { getMySupporterStatus } = await import("@/server/actions/donations");
+    return await getMySupporterStatus();
+  } catch {
+    return "active"; // fallback conservador: nao bloqueia dashboard de quem ja tem time
+  }
+}
+
 export default async function TeamDashboardPage({
   params,
 }: {
@@ -65,7 +74,11 @@ export default async function TeamDashboardPage({
     redirect("/");
   }
 
-  const offerings = await getOfferings(team.id);
+  const [offerings, supporterStatus] = await Promise.all([
+    getOfferings(team.id),
+    getSupporterStatus(),
+  ]);
+
   const offeringIds = offerings.map((o) => o.id);
   const signups = offeringIds.length > 0 ? await getSignups(offeringIds) : [];
 
@@ -74,6 +87,7 @@ export default async function TeamDashboardPage({
       team={team}
       offerings={offerings}
       signups={signups}
+      supporterStatus={supporterStatus}
     />
   );
 }

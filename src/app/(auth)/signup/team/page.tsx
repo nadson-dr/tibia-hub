@@ -2,13 +2,15 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, Coins, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { TeamOnboardingInput } from "@/types";
+import type { TeamOnboardingInput, SupporterStatus } from "@/types";
+import { DONATION } from "@/config/donation";
 
 // Worlds list — carregado dinamicamente no client a partir da TibiaData
 const FALLBACK_WORLDS = [
@@ -38,6 +40,12 @@ function slugify(name: string) {
 export default function TeamOnboardingPage() {
   const router = useRouter();
 
+  const [status, setStatus] = useState<SupporterStatus | "loading">("loading");
+  const [donationNote, setDonationNote] = useState("");
+  const [donationLoading, setDonationLoading] = useState(false);
+  const [donationError, setDonationError] = useState<string | null>(null);
+  const [donationSent, setDonationSent] = useState(false);
+
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugManual, setSlugManual] = useState(false);
@@ -51,6 +59,23 @@ export default function TeamOnboardingPage() {
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Carrega o status de apoiador ao montar
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const { getMySupporterStatus } = await import("@/server/actions/donations");
+        const s = await getMySupporterStatus();
+        if (active) setStatus(s);
+      } catch {
+        if (active) setStatus("none");
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Auto-slug a partir do nome
   useEffect(() => {
@@ -117,6 +142,172 @@ export default function TeamOnboardingPage() {
     }
   };
 
+  const handleRequestDonation = async (e: FormEvent) => {
+    e.preventDefault();
+    setDonationError(null);
+    setDonationLoading(true);
+
+    try {
+      const { requestDonation } = await import("@/server/actions/donations");
+      const result = await requestDonation({
+        purpose: "team_owner",
+        note: donationNote.trim() || undefined,
+      });
+
+      if (!result.ok) {
+        setDonationError(result.error ?? "Erro ao registrar doação.");
+      } else {
+        setDonationSent(true);
+        setStatus("pending");
+      }
+    } catch {
+      setDonationError("Erro ao registrar doação. Tente novamente.");
+    } finally {
+      setDonationLoading(false);
+    }
+  };
+
+  // Estado de carregamento inicial
+  if (status === "loading") {
+    return (
+      <main className="mx-auto max-w-xl px-4 py-12">
+        <p className="text-center text-sm text-[var(--color-muted)]">Verificando seu status...</p>
+      </main>
+    );
+  }
+
+  // Estado: pendente
+  if (status === "pending") {
+    return (
+      <main className="mx-auto max-w-xl px-4 py-12">
+        <div className="mb-8 text-center">
+          <p className="mb-1 text-sm uppercase tracking-widest text-[var(--color-gold)]">
+            Cadastro de time
+          </p>
+          <h1 className="font-display text-3xl text-[var(--color-text)]">Aguardando confirmação</h1>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 py-4 text-center">
+              <div className="rounded-full border border-[var(--color-info)]/30 bg-[var(--color-info)]/10 p-4">
+                <Clock className="h-8 w-8 text-[var(--color-info)]" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="font-medium text-[var(--color-text)]">Doacao em analise</p>
+                <p className="mt-1 text-sm text-[var(--color-muted)]">
+                  Assim que confirmarmos o recebimento do TC, voce podera criar seu time.
+                  O processo leva ate 24h.
+                </p>
+              </div>
+              <Badge tone="info">
+                <Clock className="mr-1 h-3 w-3" aria-hidden="true" />
+                Pendente
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  // Estado: não é apoiador — mostra painel de doação
+  if (status === "none") {
+    return (
+      <main className="mx-auto max-w-xl px-4 py-12">
+        <div className="mb-8 text-center">
+          <p className="mb-1 text-sm uppercase tracking-widest text-[var(--color-gold)]">
+            Cadastro de time
+          </p>
+          <h1 className="font-display text-3xl text-[var(--color-text)]">Seja Apoiador</h1>
+          <p className="mt-2 text-sm text-[var(--color-muted)]">
+            Para criar e operar um time, voce precisa ser Apoiador da plataforma.
+          </p>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            {/* Instruções de doação */}
+            <div className="mb-6 rounded-md border border-[var(--color-gold)]/30 bg-[var(--color-gold)]/5 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Coins className="h-5 w-5 text-[var(--color-gold)]" aria-hidden="true" />
+                <p className="font-medium text-[var(--color-gold)]">Como se tornar Apoiador</p>
+              </div>
+              <ol className="flex flex-col gap-2 text-sm text-[var(--color-muted)]">
+                <li className="flex gap-2">
+                  <span className="shrink-0 font-medium text-[var(--color-gold)]">1.</span>
+                  <span>
+                    Abra o Tibia, va ate a loja in-game e transfira{" "}
+                    <strong className="text-[var(--color-text)]">
+                      {DONATION.teamOwnerTc} Tibia Coins
+                    </strong>{" "}
+                    para o personagem{" "}
+                    <strong className="text-[var(--color-text)]">{DONATION.character}</strong>.
+                  </span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="shrink-0 font-medium text-[var(--color-gold)]">2.</span>
+                  <span>Volte aqui e clique em &quot;Ja fiz a doacao&quot; com o nome do personagem que enviou.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="shrink-0 font-medium text-[var(--color-gold)]">3.</span>
+                  <span>
+                    Nossa equipe confirma o recebimento (ate 24h) e libera o cadastro de time.
+                  </span>
+                </li>
+              </ol>
+              <p className="mt-3 text-xs text-[var(--color-muted)]">{DONATION.instructions}</p>
+            </div>
+
+            {/* Formulário de declaração de doação */}
+            {donationSent ? (
+              <div className="flex flex-col items-center gap-3 py-4 text-center">
+                <Badge tone="info">
+                  <Clock className="mr-1 h-3 w-3" aria-hidden="true" />
+                  Doacao registrada — em analise
+                </Badge>
+                <p className="text-sm text-[var(--color-muted)]">
+                  Confirmacao em ate 24h. Avisaremos por e-mail.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={(e) => void handleRequestDonation(e)} className="flex flex-col gap-4">
+                <Input
+                  label="Nome do personagem que enviou o TC (opcional)"
+                  value={donationNote}
+                  onChange={(e) => setDonationNote(e.target.value)}
+                  placeholder={`Ex.: ${DONATION.character}`}
+                  disabled={donationLoading}
+                  hint="Ajuda o admin a localizar a transferencia mais rapido."
+                />
+
+                {donationError && (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2 text-sm text-[var(--color-danger)]"
+                  >
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    {donationError}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  variant="gold"
+                  className="w-full"
+                  disabled={donationLoading}
+                >
+                  {donationLoading ? "Registrando..." : "Ja fiz a doacao"}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  // Estado: active — mostra o formulário de cadastro de time
   return (
     <main className="mx-auto max-w-xl px-4 py-12">
       <div className="mb-8 text-center">
@@ -125,7 +316,7 @@ export default function TeamOnboardingPage() {
         </p>
         <h1 className="font-display text-3xl text-[var(--color-text)]">Crie seu time</h1>
         <p className="mt-2 text-sm text-[var(--color-muted)]">
-          Após o cadastro, nossa equipe revisa e aprova em até 24h.
+          Apos o cadastro, nossa equipe revisa e aprova em ate 24h.
         </p>
       </div>
 
@@ -232,7 +423,7 @@ export default function TeamOnboardingPage() {
               placeholder="Ex.: Galvao Swords"
               error={errors.ownerCharacterName}
               disabled={loading}
-              hint="Nome exato como aparece no Tibia. Será validado automaticamente."
+              hint="Nome exato como aparece no Tibia. Sera validado automaticamente."
             />
 
             {/* Contatos */}
@@ -247,7 +438,7 @@ export default function TeamOnboardingPage() {
                 onChange={(e) => setWhatsapp(e.target.value)}
                 placeholder="+5511999999999"
                 disabled={loading}
-                hint="Formato E.164 com código do país"
+                hint="Formato E.164 com codigo do pais"
               />
               <Input
                 label="Instagram"
@@ -264,9 +455,9 @@ export default function TeamOnboardingPage() {
               )}
             </div>
 
-            {/* Descrição */}
+            {/* Descricao */}
             <Textarea
-              label="Descrição (opcional)"
+              label="Descricao (opcional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Fale sobre seu time, quests que realiza, diferenciais..."

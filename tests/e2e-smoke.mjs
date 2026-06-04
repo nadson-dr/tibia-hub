@@ -130,9 +130,9 @@ async function run() {
   } catch (e) { rec("A.x", "Fluxo cliente", "fail", e.message); await shot(page, "A-erro"); }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // B. PERSONA TIME
+  // B. PERSONA TIME — gate de Apoiador (ADR-010). Criação completa do time +
+  //    fila + ownership são cobertas por e2e-phase2.mjs e e2e-signup.mjs.
   // ──────────────────────────────────────────────────────────────────────────
-  let teamSlug = null;
   try {
     await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
     await page.getByRole("button", { name: /Tenho um time/i }).click();
@@ -143,78 +143,14 @@ async function run() {
     await page.waitForURL(/\/signup\/team/, { timeout: 15000 });
     rec("B.1", "Conta time criada → redirect /signup/team", "pass");
 
-    // negativo: submeter vazio
-    await page.getByRole("button", { name: "Criar time" }).click();
-    await page.waitForTimeout(400);
-    const reqErr = await page.getByText(/obrigatório|Selecione pelo menos um mundo/i).count();
-    rec("B.2neg", "Onboarding valida campos obrigatórios", reqErr > 0 ? "pass" : "warn", `${reqErr} erros`);
-
-    // preenche
-    await page.getByLabel("Nome do time").fill(TEAM_NAME);
-    await page.getByLabel(/Filtrar mundos/i).fill(CHAR_WORLD);
-    await page.waitForTimeout(300);
-    await page.getByRole("button", { name: CHAR_WORLD, exact: true }).first().click();
-    await page.getByLabel(/Seu personagem principal/i).fill(CHAR);
-    await page.getByLabel("WhatsApp").fill("+5511999998888");
-    await page.getByLabel(/Descrição/i).fill("Time de QA automatizado.");
-    await shot(page, "B2-onboarding-preenchido");
-    await page.getByRole("button", { name: "Criar time" }).click();
-    await page.waitForURL(/\/p\//, { timeout: 20000 });
-    teamSlug = page.url().split("/p/")[1]?.replace(/\/$/, "");
-    rec("B.3", "Time criado → redirect /p/[slug]", "pass", `slug=${teamSlug}`);
-
-    const aguardando = await page.getByText(/Aguardando aprovação/i).count();
-    const teamNameShown = await page.getByText(TEAM_NAME).count();
-    await shot(page, "B3-dashboard");
-    rec("B.3b", "Dashboard mostra nome do time + 'Aguardando aprovação'",
-      teamNameShown > 0 && aguardando > 0 ? "pass" : "fail");
-
-    // abrir fila
-    await page.getByRole("button", { name: /Nova fila/i }).click();
-    await page.waitForTimeout(400);
-    // quest default soulwar; setar vagas EK=2, ED=2
-    await page.getByLabel(/Vagas para EK/i).fill("2");
-    await page.getByLabel(/Vagas para ED/i).fill("2");
-    await page.locator("form").getByRole("button", { name: /Abrir fila/i }).click();
-    await page.waitForTimeout(3000);
-    const offeringTab = await page.getByRole("button", { name: /Soul War/i }).count();
-    await shot(page, "B4-fila-aberta");
-    rec("B.4", "Fila (offering) criada e aparece no dashboard", offeringTab > 0 ? "pass" : "fail");
-  } catch (e) { rec("B.x", "Fluxo time", "fail", e.message); await shot(page, "B-erro"); }
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // C. /g/[slug] antes da aprovação (deve 404)
-  // ──────────────────────────────────────────────────────────────────────────
-  try {
-    if (teamSlug) {
-      const resp = await page.goto(`${BASE}/g/${teamSlug}`, { waitUntil: "networkidle" });
-      const is404 = resp?.status() === 404 || (await page.getByText(/404|not found|não encontrad/i).count()) > 0;
-      await shot(page, "C6-g-slug-nao-aprovado");
-      rec("C.6", "/g/[slug] dá 404 enquanto não aprovado", is404 ? "pass" : "warn", `status=${resp?.status()}`);
-    }
-  } catch (e) { rec("C.6", "/g/[slug] não aprovado", "warn", e.message); }
-
-  // ownership: cliente tentando abrir o /p do time → redirect /
-  try {
-    if (teamSlug) {
-      // logar como cliente e CONFIRMAR que a sessão trocou antes de navegar
-      await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
-      await page.getByLabel("E-mail").fill(CLIENT_EMAIL);
-      await page.getByLabel("Senha", { exact: true }).fill(PWD);
-      await page.getByRole("button", { name: "Entrar" }).click();
-      // espera o header refletir o login do cliente (sessão trocada)
-      const switched = await page
-        .waitForSelector(`text=${CLIENT_EMAIL}`, { timeout: 12000 })
-        .then(() => true)
-        .catch(() => false);
-      rec("B.5pre", "Login do cliente confirmado (header)", switched ? "pass" : "warn");
-      await page.waitForTimeout(1500); // garante cookie persistido
-      await page.goto(`${BASE}/p/${teamSlug}`, { waitUntil: "networkidle" });
-      await page.waitForTimeout(1500);
-      const redirected = !page.url().includes(`/p/${teamSlug}`);
-      rec("B.5", "Não-dono é bloqueado do dashboard (/p/[slug])", redirected ? "pass" : "fail", `url=${page.url()}`);
-    }
-  } catch (e) { rec("B.5", "Ownership", "warn", e.message); }
+    // gate: não-apoiador NÃO vê o form de time; vê o painel de doação
+    await page.waitForTimeout(1500);
+    const formAbsent = (await page.getByLabel("Nome do time").count()) === 0;
+    const gateShown = (await page.getByText(/Apoiador|doa(ç|c)/i).count()) > 0;
+    await shot(page, "B-gate-apoiador");
+    rec("B.2", "Gate: não-apoiador é direcionado à doação (sem form de time)",
+      formAbsent && gateShown ? "pass" : "fail", `form=${!formAbsent} gate=${gateShown}`);
+  } catch (e) { rec("B.x", "Fluxo time (gate)", "fail", e.message); await shot(page, "B-erro"); }
 
   console.log("\n=== CONSOLE ERRORS no browser ===");
   const realErrors = consoleErrors.filter((e) => !/favicon|404 \(Not Found\)/i.test(e));

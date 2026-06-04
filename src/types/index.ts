@@ -19,12 +19,33 @@ export type OfferingKind = "service" | "community";
 export type OfferingStatus = "open" | "paused" | "closed";
 export type SignupStatus = "waiting" | "scheduled" | "done" | "cancelled";
 
+/** Status do tier Apoiador (doação em TC). Ver src/config/donation.ts e ADR-010. */
+export type SupporterStatus = "none" | "pending" | "active";
+
 export type UserDoc = {
   role: UserRole;
   displayName: string;
   email: string;
   contact: Contact;
+  /** tier Apoiador; ausência = "none" (compat com docs antigos) */
+  supporter?: SupporterStatus;
+  supporterConfirmedAt?: number;
   createdAt: number; // epoch ms (Timestamp.toMillis no client)
+};
+
+export type DonationPurpose = "team_owner";
+export type DonationStatus = "pending" | "confirmed" | "rejected";
+
+export type DonationDoc = {
+  uid: string;
+  userEmail: string;
+  purpose: DonationPurpose;
+  tcAmount: number;
+  status: DonationStatus;
+  note?: string; // ex.: nome do char que enviou o TC
+  requestedAt: number;
+  confirmedAt?: number;
+  confirmedByUid?: string;
 };
 
 export type CharacterDoc = {
@@ -131,4 +152,19 @@ export type CreateSignupInput = {
 export type UpdateSignupStatusInput = {
   signupId: string;
   status: SignupStatus;
+};
+
+/* ── Doação / Apoiador (ADR-010) ─────────────────────────────────────────── */
+
+/** Usuário declara que doou TC para virar Apoiador (pendente até admin confirmar). */
+export type RequestDonationInput = {
+  purpose: DonationPurpose; // "team_owner"
+  /** nome do char que enviou o TC, p/ o admin conferir (opcional) */
+  note?: string;
+};
+
+/** Admin confirma/rejeita uma doação. */
+export type ResolveDonationInput = {
+  donationId: string;
+  decision: "confirm" | "reject";
 };

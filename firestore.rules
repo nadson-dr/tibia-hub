@@ -49,5 +49,11 @@ service cloud.firestore {
         && (request.auth.uid == resource.data.clientUid || isTeamOwner(resource.data.teamId));
       allow write: if false;
     }
+
+    // Doações — leitura e escrita exclusivamente via Admin SDK no servidor.
+    // O usuário nunca acessa donations diretamente pelo client.
+    match /donations/{donationId} {
+      allow read, write: if false;
+    }
   }
 }

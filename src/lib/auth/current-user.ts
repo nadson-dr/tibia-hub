@@ -38,3 +38,38 @@ export async function requireUser(): Promise<SessionUser> {
   }
   return user;
 }
+
+/**
+ * Verifica se o uid informado está na lista ADMIN_UIDS (env, separada por vírgula).
+ * Server-only — nunca expor ao client.
+ */
+export function isAdmin(uid: string): boolean {
+  const raw = process.env.ADMIN_UIDS ?? "";
+  if (!raw.trim()) return false;
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .includes(uid);
+}
+
+/**
+ * Retorna true se o usuário da sessão atual for admin.
+ */
+export async function isCurrentUserAdmin(): Promise<boolean> {
+  const user = await getCurrentUser();
+  if (!user) return false;
+  return isAdmin(user.uid);
+}
+
+/**
+ * Como requireUser(), mas também exige que o usuário seja admin (ADMIN_UIDS).
+ * Lança se não autenticado ou não for admin.
+ */
+export async function requireAdmin(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (!isAdmin(user.uid)) {
+    throw new Error("Acesso negado: requer privilégios de admin.");
+  }
+  return user;
+}

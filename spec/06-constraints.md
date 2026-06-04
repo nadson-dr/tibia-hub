@@ -1,28 +1,32 @@
 # 06 — Restrições
 
-## 🛑 Regra de ouro: sem cobrança (CipSoft)
+## 🛑 Regra base: sem cobrança em dinheiro real (CipSoft)
 
 Tibia Hub é um **fansite**. Pela política de fansites da CipSoft, um fansite **não pode cobrar
-valores** por nenhuma funcionalidade prestada dentro do site.
+valores em dinheiro real** por funcionalidade.
 
-**Consequências obrigatórias no produto:**
-- **Toda feature é gratuita para todos.** Não existe tier pago, paywall, gating por pagamento,
-  comissão sobre service, nem limite de volume removível por dinheiro.
-- **Não há gateway de pagamento** no projeto. Nenhum fluxo cobra R$/cartão/PIX.
-- O modelo freemium do projeto anterior (premium destravando `max_members`, `max_offerings`,
-  boost na busca) **foi removido** e **não pode voltar**. Ver ADR de retração.
+**Invariantes do produto (não negociáveis):**
+- **Nunca há cobrança em dinheiro real.** Sem R$/cartão/PIX, sem gateway de pagamento.
+- **Cliente final é sempre 100% grátis** — browse, achar time e entrar na fila nunca exigem nada.
 
-### Doação opcional (permitido, só cosmético)
-- Doação **voluntária mensal** estilo "apoiador" é aceitável **desde que não destrave nenhuma
-  funcionalidade essencial**.
-- Doação é em **Tibia Coin (TC)**, transferida in-game para um char dedicado da plataforma —
-  **não** em dinheiro real, **sem** gateway.
-- Confirmação **manual**: admin confirma após receber o TC (ou trust-based).
-- Contrapartida **apenas cosmética:** `teams.supporterBadge` (badge "Apoiador"), agradecimento.
-  Nunca prioridade de busca, limites maiores, ou qualquer vantagem funcional.
+## 💰 Doação em Tibia Coin destrava o tier "Apoiador" (ADR-010)
 
-> Se uma feature parece exigir pagamento para funcionar, **ela está modelada errada** — reabra a
-> decisão. Em dúvida, a feature é grátis.
+> ⚠️ **Decisão do dono, com risco assumido.** O ADR-009 (doação só cosmética) foi **supersepido
+> pelo [ADR-010](./adr/010-supporter-tc-gating.md)**: o dono optou por **gatear funções especiais
+> atrás de doação em Tibia Coin**, ciente de que destravar funcionalidade essencial pode ser
+> interpretado como cobrar por serviço e arriscar o status de fansite. Mitigação: TC in-game (não
+> dinheiro real), voluntário, sem gateway, confirmação manual.
+
+- **Moeda:** Tibia Coin transferida in-game para um personagem dedicado (`src/config/donation.ts`).
+- **Confirmação manual** por admin após receber o TC; só então o tier é ativado.
+- **Perks do tier Apoiador** (dirigidos por config `CAPS[supporter]`):
+  - `canOwnTeam` — criar/operar um time.
+  - `maxActiveOfferings` — número de filas abertas simultâneas (várias quests ao mesmo tempo).
+  - `supporterBadge` cosmético (badge "Apoiador").
+- Extensível para **tiers** (mais TC = mais filas) adicionando níveis no config — sem refator.
+
+> Reverter para "tudo grátis" (ADR-009) = relaxar o `CAPS` (tudo liberado no nível `none`). Manter
+> o gate isolado no config + checagens facilita reverter se a regra de fansite exigir.
 
 ## Free tier (Firebase Spark)
 

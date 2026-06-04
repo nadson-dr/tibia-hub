@@ -21,7 +21,7 @@ export function Header() {
         </Link>
 
         {/* Nav central */}
-        <nav aria-label="Navegação principal">
+        <nav aria-label="Navegacao principal">
           <ul className="hidden sm:flex items-center gap-6 text-sm text-[var(--color-muted)]">
             <li>
               <Link
@@ -31,6 +31,17 @@ export function Header() {
                 Service
               </Link>
             </li>
+            {user && (
+              <li>
+                <Link
+                  href="/admin"
+                  className="transition-colors hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gold)] rounded px-1"
+                  aria-label="Painel de administracao"
+                >
+                  Admin
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
 

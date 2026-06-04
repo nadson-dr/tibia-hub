@@ -5,8 +5,10 @@ import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/lib/auth/current-user";
 import { fetchCharacter } from "@/lib/tibiadata";
 import { parseTibiaVocation } from "@/lib/tibiadata/vocation";
+import { capsFor } from "@/config/donation";
 import type {
   Result,
+  SupporterStatus,
   TeamDoc,
   TeamMemberDoc,
   TeamOnboardingInput,
@@ -24,6 +26,17 @@ export async function createTeam(
   input: TeamOnboardingInput,
 ): Promise<Result<WithId<TeamDoc>>> {
   const user = await requireUser();
+
+  // 0. Verifica se o usuário tem o tier Apoiador (gate ADR-010)
+  const userSnap = await adminDb().collection("users").doc(user.uid).get();
+  const userSupporterStatus = (userSnap.data()?.supporter ?? "none") as SupporterStatus;
+  if (!capsFor(userSupporterStatus).canOwnTeam) {
+    return {
+      ok: false,
+      error:
+        "Para criar um time, ative o tier Apoiador com uma doação em Tibia Coin (ver /me).",
+    };
+  }
 
   // 1. Verifica slug único
   const slugQuery = await adminDb()
